@@ -13,9 +13,7 @@ class RickAndMortyAPI {
     try {
       const results = [];
       let page = 1;
-
         while (page !== null) {
-        console.log("page", page);
         const query = getCharactersQuery(page);
         const { data } = await axios.post(
             this.apiURL,
@@ -24,10 +22,8 @@ class RickAndMortyAPI {
         );
         const { characters } = data.data;
         results.push(...characters.results);
-        console.log("page", characters.info);
         page = characters.info.next;
     }
-      console.log(results.length);
       return results;
     } catch (error) {
       throw new Error(`Error en la consulta: ${error}`);

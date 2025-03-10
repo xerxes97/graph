@@ -1,6 +1,7 @@
 import axios from "axios";
 import { sequelize } from "../database/index.js";
 import RickAndMortyAPI from "../api/api.js";
+import { Character } from "../database/models/character.js";
 
 const books = [
   {
@@ -14,9 +15,18 @@ const books = [
 ];
 
 export const typeDefs = `#graphql
-    type Book {
-        title: String
-        Author: String
+
+    enum CharacterStatus {
+      Dead
+      Alive
+      Unknown
+    }
+
+    enum Gender {
+      Female
+      Male
+      Genderless
+      Unknown
     }
 
     type Character {
@@ -38,50 +48,29 @@ export const typeDefs = `#graphql
       results: [ExternalCharacter]
     }
 
+    type CharactersData {
+      info: Info
+      data: [Character]
+    }
+
     type Query {
-        books: [Book]
         testConnections: String
-        getCharacters: [Character]
-        testExternal: [Character]
+        getCharacters(name: String, status: CharacterStatus, gender: Gender species: String, origin: String): CharactersData
+        getCharacter(id: ID): Character
         testExternalCharacters: [ExternalCharacter]
     }
 `;
 
 export const resolvers = {
   Query: {
-    books: () => books,
-    getCharacters: async () => {
-      return await RickAndMortyAPI.getCharacters();
+    getCharacters: async (_, args) => {
+      const { count, rows } = await Character.findAndCountAll();
+      return { info: { next: null, pages: Math.ceil(count / 10) }, data: rows };
     },
-    testExternal: async () => {
-        try {
-            const response = await axios.post(
-                "https://rickandmortyapi.com/graphql",
-                {
-                    query: `
-                    query {
-                        characters {
-                            info {
-                                pages
-                            }
-                            results {
-                                species
-                                name
-                            }
-                        }
-                    }`
-                },
-                {
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
-    
-            console.log(response.data.data.characters.results);
-        } catch (error) {
-            console.error("Error en la consulta:", error.response?.data || error.message);
-        };
+    getCharacter: async (_, args) => {
+      const { id } = args;
+      const character = await Character.findByPk(id);
+      return character;
     },
     testConnections: async () => {
       try {
@@ -96,8 +85,12 @@ export const resolvers = {
       try {
         const characters = await RickAndMortyAPI.getCharacters();
         return characters;
+      } catch (error) {
+        console.error(
+          "Error en la consulta:",
+          error.response?.data || error.message
+        );
       }
-      catch (error) {console.error("Error en la consulta:", error.response?.data || error.message);}
-    }
+    },
   },
 };
