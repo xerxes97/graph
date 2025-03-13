@@ -1,7 +1,7 @@
-import axios from "axios";
 import { sequelize } from "../database/index.js";
 import RickAndMortyAPI from "../api/api.js";
 import { Character } from "../database/models/character.js";
+import { manageRedisData } from "../common/redis.js";
 
 const books = [
   {
@@ -83,8 +83,7 @@ export const resolvers = {
     },
     testExternalCharacters: async () => {
       try {
-        const characters = await RickAndMortyAPI.getCharacters();
-        return characters;
+        return await manageRedisData("characters", RickAndMortyAPI.getCharacters);
       } catch (error) {
         console.error(
           "Error en la consulta:",
